@@ -40,28 +40,6 @@ def open_app(app_name):
                 subprocess.Popen(["start", "cmd"], shell=True)
             else:
                 return f"App {app_name} not supported on Windows."
-        elif system == "Darwin":  # macOS
-            if app_name.lower() == "chrome":
-                subprocess.Popen(["open", "-a", "Google Chrome"])
-            elif app_name.lower() == "brave":
-                subprocess.Popen(["open", "-a", "Brave Browser"])
-            elif app_name.lower() == "vscode":
-                subprocess.Popen(["open", "-a", "Visual Studio Code"])
-            elif app_name.lower() == "terminal":
-                subprocess.Popen(["open", "-a", "Terminal"])
-            else:
-                return f"App {app_name} not supported on macOS."
-        elif system == "Linux":
-            if app_name.lower() == "chrome":
-                subprocess.Popen(["google-chrome"])
-            elif app_name.lower() == "brave":
-                subprocess.Popen(["brave-browser"])
-            elif app_name.lower() == "vscode":
-                subprocess.Popen(["code"])
-            elif app_name.lower() == "terminal":
-                subprocess.Popen(["gnome-terminal"])
-            else:
-                return f"App {app_name} not supported on Linux."
         else:
             return f"Unsupported OS: {system}"
         return f"Opening {app_name}."
@@ -88,22 +66,6 @@ def control_volume(action):
             import ctypes
             # Windows volume control requires additional libraries or complex code, skipping for now
             return "Volume control on Windows is not implemented yet."
-        elif system == "Darwin":
-            if action == "up":
-                subprocess.call(["osascript", "-e", "set volume output volume ((output volume of (get volume settings)) + 10) --100%"])
-            elif action == "down":
-                subprocess.call(["osascript", "-e", "set volume output volume ((output volume of (get volume settings)) - 10) --100%"])
-            elif action == "mute":
-                subprocess.call(["osascript", "-e", "set volume output muted true"])
-            return f"Volume {action} executed."
-        elif system == "Linux":
-            if action == "up":
-                subprocess.call(["amixer", "-D", "pulse", "sset", "Master", "10%+"])
-            elif action == "down":
-                subprocess.call(["amixer", "-D", "pulse", "sset", "Master", "10%-"])
-            elif action == "mute":
-                subprocess.call(["amixer", "-D", "pulse", "sset", "Master", "toggle"])
-            return f"Volume {action} executed."
         else:
             return f"Unsupported OS: {system}"
     except Exception as e:
@@ -117,18 +79,6 @@ def control_wifi(action):
                 subprocess.call(["netsh", "interface", "set", "interface", "Wi-Fi", "enabled"])
             elif action == "off":
                 subprocess.call(["netsh", "interface", "set", "interface", "Wi-Fi", "disabled"])
-            return f"WiFi turned {action}."
-        elif system == "Darwin":
-            if action == "on":
-                subprocess.call(["networksetup", "-setairportpower", "en0", "on"])
-            elif action == "off":
-                subprocess.call(["networksetup", "-setairportpower", "en0", "off"])
-            return f"WiFi turned {action}."
-        elif system == "Linux":
-            if action == "on":
-                subprocess.call(["nmcli", "radio", "wifi", "on"])
-            elif action == "off":
-                subprocess.call(["nmcli", "radio", "wifi", "off"])
             return f"WiFi turned {action}."
         else:
             return f"Unsupported OS: {system}"
