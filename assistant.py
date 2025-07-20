@@ -83,14 +83,49 @@ def execute_system_command(command):
     except Exception as e:
         return f"Exception during command execution: {str(e)}"
 
+import webbrowser
+
+def open_application(app_name):
+    app_map = {
+        "youtube": "https://www.youtube.com",
+        "file explorer": "explorer",
+        "whatsapp": "C:\\Users\\%USERNAME%\\AppData\\Local\\WhatsApp\\WhatsApp.exe",
+        "chrome": "chrome",
+        "notepad": "notepad",
+        "calculator": "calc",
+        "settings": "ms-settings:",
+        "command prompt": "cmd",
+        "powershell": "powershell",
+        "windows": "explorer",
+        # Add more mappings as needed
+    }
+    app_name_lower = app_name.lower()
+    if app_name_lower in app_map:
+        target = app_map[app_name_lower]
+        if target.startswith("http"):
+            webbrowser.open(target)
+            return f"Opening {app_name} in your default browser."
+        else:
+            try:
+                subprocess.Popen(target)
+                return f"Opening {app_name}."
+            except Exception as e:
+                return f"Failed to open {app_name}: {str(e)}"
+    else:
+        return f"Application {app_name} not recognized."
+
 def process_command(command):
     command = command.lower()
-    # Basic system commands examples
     if command.startswith("open "):
         app = command[5:].strip()
-        # Try to open app using start on Windows
-        response = execute_system_command(f'start "" "{app}"')
-        return response
+        # Check if app is a URL
+        if app.startswith("http://") or app.startswith("https://"):
+            webbrowser.open(app)
+            return f"Opening {app} in your default browser."
+        else:
+            # Try to open known applications
+            response = open_application(app)
+            return response
     elif command.startswith("run "):
         cmd = command[4:].strip()
         response = execute_system_command(cmd)
@@ -114,8 +149,23 @@ def listen_and_respond():
             print(f"You said: {command}")
             response = process_command(command)
             print(f"Assistant: {response}")
-            speak(response)
-            log_request_response(command, response)
+            # Speak the response if it is a string
+            if isinstance(response, str):
+                speak(response)
+            elif isinstance(response, dict):
+                # If response is a dict, try to extract text and speak
+                text_to_speak = ""
+                if "parts" in response:
+                    text_to_speak = " ".join([part.get("text", "") for part in response["parts"]]).strip()
+                elif "content" in response:
+                    text_to_speak = response.get("content", "")
+                if text_to_speak:
+                    speak(text_to_speak)
+                else:
+                    speak(str(response))
+            else:
+                speak(str(response))
+            log_request_response(command, response if isinstance(response, str) else json.dumps(response))
         except sr.UnknownValueError:
             speak("Sorry, I did not understand that. Please try again.")
         except sr.RequestError as e:
