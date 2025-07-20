@@ -32,6 +32,8 @@ def open_app(app_name):
         if system == "Windows":
             if app_name.lower() == "chrome":
                 subprocess.Popen(["start", "chrome"], shell=True)
+            elif app_name.lower() == "brave":
+                subprocess.Popen(["start", "brave"], shell=True)
             elif app_name.lower() == "vscode":
                 subprocess.Popen(["code"], shell=True)
             elif app_name.lower() == "terminal":
@@ -41,6 +43,8 @@ def open_app(app_name):
         elif system == "Darwin":  # macOS
             if app_name.lower() == "chrome":
                 subprocess.Popen(["open", "-a", "Google Chrome"])
+            elif app_name.lower() == "brave":
+                subprocess.Popen(["open", "-a", "Brave Browser"])
             elif app_name.lower() == "vscode":
                 subprocess.Popen(["open", "-a", "Visual Studio Code"])
             elif app_name.lower() == "terminal":
@@ -50,6 +54,8 @@ def open_app(app_name):
         elif system == "Linux":
             if app_name.lower() == "chrome":
                 subprocess.Popen(["google-chrome"])
+            elif app_name.lower() == "brave":
+                subprocess.Popen(["brave-browser"])
             elif app_name.lower() == "vscode":
                 subprocess.Popen(["code"])
             elif app_name.lower() == "terminal":
@@ -156,12 +162,25 @@ def process_command(command):
     if "open" in command:
         if "chrome" in command:
             response = open_app("chrome")
+        elif "brave" in command:
+            response = open_app("brave")
         elif "vscode" in command:
             response = open_app("vscode")
         elif "terminal" in command:
             response = open_app("terminal")
         else:
-            response = "Which app do you want to open?"
+            # Try to open as website if command contains "open <something>"
+            words = command.split()
+            url = None
+            for word in words:
+                if word.startswith("http") or "." in word:
+                    url = word
+                    break
+            if url:
+                webbrowser.open(url)
+                response = f"Opening website {url}."
+            else:
+                response = "Which app do you want to open?"
     elif "search file" in command or "search files" in command:
         query = command.replace("search files", "").replace("search file", "").strip()
         if query:
@@ -216,6 +235,7 @@ def main():
     while True:
         command = listen_for_command()
         response = process_command(command)
+        print(f"Response: {response}")
         log_request_response(command, response)
 
 if __name__ == "__main__":
