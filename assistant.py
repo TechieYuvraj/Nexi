@@ -85,7 +85,6 @@ def control_wifi(action):
     except Exception as e:
         return f"Failed to control WiFi: {str(e)}"
 
-# Removed listen_for_wake_word function as per user request
 
 def listen_for_command():
     recognizer = sr.Recognizer()
