@@ -89,8 +89,8 @@ def open_application(app_name):
     app_map = {
         "youtube": "https://www.youtube.com",
         "file explorer": "explorer",
-        "whatsapp": "C:\\Users\\%USERNAME%\\AppData\\Local\\WhatsApp\\WhatsApp.exe",
-        "chrome": "chrome",
+        "whatsapp": r"C:\\Users\\{username}\\AppData\\Local\\WhatsApp\\WhatsApp.exe",
+        "chrome": "start chrome",
         "notepad": "notepad",
         "calculator": "calc",
         "settings": "ms-settings:",
@@ -107,23 +107,45 @@ def open_application(app_name):
             return f"Opening {app_name} in your default browser."
         else:
             try:
-                subprocess.Popen(target)
+                if app_name_lower == "whatsapp":
+                    import getpass
+                    username = getpass.getuser()
+                    path = target.format(username=username)
+                    subprocess.Popen(path)
+                else:
+                    subprocess.Popen(target, shell=True)
                 return f"Opening {app_name}."
             except Exception as e:
                 return f"Failed to open {app_name}: {str(e)}"
     else:
         return f"Application {app_name} not recognized."
 
+import re
+
 def process_command(command):
     command = command.lower()
-    if command.startswith("open "):
+    # Handle commands like "open whatsapp and send message to yuvraj that I am coming"
+    open_send_pattern = re.compile(r"open (\w+)(?: and send message to (\w+)(?: that (.+))?)?")
+    match = open_send_pattern.match(command)
+    if match:
+        app = match.group(1)
+        contact = match.group(2)
+        message = match.group(3)
+        if app == "whatsapp":
+            if contact and message:
+                # Placeholder for sending WhatsApp message functionality
+                return f"Sending message to {contact} on WhatsApp: {message}"
+            else:
+                return open_application(app)
+        else:
+            return open_application(app)
+    elif command.startswith("open "):
         app = command[5:].strip()
         # Check if app is a URL
         if app.startswith("http://") or app.startswith("https://"):
             webbrowser.open(app)
             return f"Opening {app} in your default browser."
         else:
-            # Try to open known applications
             response = open_application(app)
             return response
     elif command.startswith("run "):
@@ -131,9 +153,8 @@ def process_command(command):
         response = execute_system_command(cmd)
         return response
     else:
-        # Use Gemini API for other queries/conversations
-        response = call_gemini_api(command)
-        return response
+        # Discussion feature removed; return default message
+        return "Sorry, I can only perform system tasks right now."
 
 def listen_and_respond():
     recognizer = sr.Recognizer()
