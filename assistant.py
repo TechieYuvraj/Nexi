@@ -121,10 +121,59 @@ def open_application(app_name):
         return f"Application {app_name} not recognized."
 
 import re
+import pyautogui
+import time
+
+def listen_for_typing():
+    recognizer = sr.Recognizer()
+    mic = sr.Microphone()
+    speak("Please say the sentence you want me to type.")
+    with mic as source:
+        recognizer.adjust_for_ambient_noise(source)
+        audio = recognizer.listen(source)
+    try:
+        text = recognizer.recognize_google(audio)
+        speak(f"I heard: {text}. Typing now.")
+        return text
+    except Exception as e:
+        speak("Sorry, I could not understand the sentence to type.")
+        return ""
+
+def press_keys(keys_str):
+    keys = keys_str.lower().split()
+    for key in keys:
+        try:
+            pyautogui.keyDown(key)
+        except Exception:
+            pass
+    time.sleep(0.1)
+    for key in reversed(keys):
+        try:
+            pyautogui.keyUp(key)
+        except Exception:
+            pass
 
 def process_command(command):
     command = command.lower()
-    # Handle commands like "open whatsapp and send message to yuvraj that I am coming"
+    # Handle press keys command
+    press_pattern = re.compile(r"press (.+)")
+    press_match = press_pattern.match(command)
+    if press_match:
+        keys_str = press_match.group(1)
+        press_keys(keys_str)
+        return f"Pressed keys: {keys_str}"
+
+    # Handle type sentence command
+    type_pattern = re.compile(r"type (.+)")
+    type_match = type_pattern.match(command)
+    if type_match:
+        sentence = type_match.group(1)
+        if sentence.strip() == "":
+            sentence = listen_for_typing()
+        pyautogui.write(sentence)
+        return f"Typed sentence: {sentence}"
+
+    # Existing open/send message pattern
     open_send_pattern = re.compile(r"open (\w+)(?: and send message to (\w+)(?: that (.+))?)?")
     match = open_send_pattern.match(command)
     if match:
