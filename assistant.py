@@ -28,21 +28,37 @@ def log_request_response(request, response):
 
 def open_app(app_name):
     system = platform.system()
+    app_name_lower = app_name.lower()
     try:
         if system == "Windows":
-            if app_name.lower() == "chrome":
-                subprocess.Popen(["start", "chrome"], shell=True)
-            elif app_name.lower() == "brave":
-                subprocess.Popen(["start", "brave"], shell=True)
-            elif app_name.lower() == "vscode":
-                subprocess.Popen(["code"], shell=True)
-            elif app_name.lower() == "terminal":
-                subprocess.Popen(["start", "cmd"], shell=True)
+            # Mapping of app names to commands or URLs
+            app_commands = {
+                "chrome": ["start", "chrome"],
+                "brave": ["start", "brave"],
+                "vscode": ["code"],
+                "terminal": ["start", "cmd"],
+                "youtube": "https://www.youtube.com",
+                "whatsapp": ["start", "C:\\Users\\%USERNAME%\\AppData\\Local\\WhatsApp\\WhatsApp.exe"],
+                "chat gpt": "https://chat.openai.com",
+            }
+            if app_name_lower in app_commands:
+                cmd = app_commands[app_name_lower]
+                if isinstance(cmd, list):
+                    subprocess.Popen(cmd, shell=True)
+                else:
+                    # Open URL in default browser
+                    webbrowser.open(cmd)
+                return f"Opening {app_name}."
             else:
-                return f"App {app_name} not supported on Windows."
+                # Try to open as website
+                if app_name_lower.startswith("http") or "." in app_name_lower:
+                    url = app_name_lower if app_name_lower.startswith("http") else "http://" + app_name_lower
+                    webbrowser.open(url)
+                    return f"Opening website {url}."
+                else:
+                    return f"App {app_name} not supported on Windows."
         else:
             return f"Unsupported OS: {system}"
-        return f"Opening {app_name}."
     except Exception as e:
         return f"Failed to open {app_name}: {str(e)}"
 
@@ -104,43 +120,58 @@ def listen_for_command():
         speak("Sorry, I am having trouble connecting to the speech service.")
         return None
 
+import re
+
+import re
+
 def process_command(command):
     if not command:
         return "No command received."
     response = ""
-    if "open" in command:
-        if "chrome" in command:
-            response = open_app("chrome")
-        elif "brave" in command:
-            response = open_app("brave")
-        elif "vscode" in command:
-            response = open_app("vscode")
-        elif "terminal" in command:
-            response = open_app("terminal")
+
+    command = command.lower()
+
+    # Open app or website
+    open_match = re.search(r"open (.+)", command)
+    if open_match:
+        target = open_match.group(1).strip()
+        # Use dynamic app list from open_app's app_commands keys
+        apps = list({
+            "chrome": None,
+            "brave": None,
+            "vscode": None,
+            "terminal": None,
+            "youtube": None,
+            "whatsapp": None,
+            "chat gpt": None,
+        }.keys())
+        if target in apps:
+            response = open_app(target)
         else:
-            # Try to open as website if command contains "open <something>"
-            words = command.split()
-            url = None
-            for word in words:
-                if word.startswith("http") or "." in word:
-                    url = word
-                    break
-            if url:
+            # Check if target looks like a URL or website name
+            if target.startswith("http") or "." in target:
+                url = target if target.startswith("http") else "http://" + target
                 webbrowser.open(url)
                 response = f"Opening website {url}."
             else:
-                response = "Which app do you want to open?"
-    elif "search file" in command or "search files" in command:
-        query = command.replace("search files", "").replace("search file", "").strip()
-        if query:
-            matches = search_files(query)
-            if matches:
-                response = f"Found {len(matches)} files containing '{query}': " + ", ".join(matches[:5])
-            else:
-                response = f"No files found containing '{query}'."
+                response = f"Which app do you want to open? I don't recognize '{target}'."
+        speak(response)
+        return response
+
+    # Search files
+    search_match = re.search(r"search files? for (.+)", command)
+    if search_match:
+        query = search_match.group(1).strip()
+        matches = search_files(query)
+        if matches:
+            response = f"Found {len(matches)} files containing '{query}': " + ", ".join(matches[:5])
         else:
-            response = "Please specify what to search for."
-    elif "volume" in command:
+            response = f"No files found containing '{query}'."
+        speak(response)
+        return response
+
+    # Volume control
+    if "volume" in command:
         if "up" in command:
             response = control_volume("up")
         elif "down" in command:
@@ -149,33 +180,47 @@ def process_command(command):
             response = control_volume("mute")
         else:
             response = "Specify volume action: up, down, or mute."
-    elif "wifi" in command:
+        speak(response)
+        return response
+
+    # WiFi control
+    if "wifi" in command:
         if "on" in command:
             response = control_wifi("on")
         elif "off" in command:
             response = control_wifi("off")
         else:
             response = "Specify WiFi action: on or off."
-    elif "time" in command:
+        speak(response)
+        return response
+
+    # Time and date
+    if "time" in command:
         now = datetime.datetime.now().strftime("%H:%M:%S")
         response = f"The current time is {now}."
-    elif "date" in command:
+        speak(response)
+        return response
+
+    if "date" in command:
         today = datetime.datetime.now().strftime("%Y-%m-%d")
         response = f"Today's date is {today}."
-    elif "open website" in command:
-        words = command.split()
-        url = None
-        for word in words:
-            if word.startswith("http") or "." in word:
-                url = word
-                break
-        if url:
+        speak(response)
+        return response
+
+    # Open website
+    website_match = re.search(r"open website (.+)", command)
+    if website_match:
+        url = website_match.group(1).strip()
+        if url.startswith("http") or "." in url:
+            url = url if url.startswith("http") else "http://" + url
             webbrowser.open(url)
             response = f"Opening website {url}."
         else:
             response = "Please specify a valid website URL."
-    else:
-        response = "Sorry, I can't perform that command yet."
+        speak(response)
+        return response
+
+    response = "Sorry, I can't perform that command yet."
     speak(response)
     return response
 
